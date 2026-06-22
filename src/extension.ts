@@ -1,26 +1,47 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
+// src/extension.ts
 import * as vscode from 'vscode';
+import { ExtensionManager } from './core/ExtensionManager';
+import { SidebarProvider } from './sidebar/SidebarProvider';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+let extensionManager: ExtensionManager | undefined;
+
 export function activate(context: vscode.ExtensionContext) {
+    console.log('Recall extension is now active.');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "recall" is now active!');
+    // Initialize the extension manager
+    extensionManager = new ExtensionManager(context.extensionUri);
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('recall.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from Recall!');
-	});
+    // Register the sidebar webview provider
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(
+            SidebarProvider.viewType,
+            extensionManager.sidebarProvider
+        )
+    );
 
-	context.subscriptions.push(disposable);
+    // Activate event listeners and push initial state
+    extensionManager.activate(context);
+
+    // Register Refresh command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('recall.refresh', () => {
+            extensionManager?.refresh();
+            vscode.window.showInformationMessage('Recall: Refreshed.');
+        })
+    );
+
+    // Register Show Info command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('recall.showInfo', () => {
+            vscode.window.showInformationMessage(
+                'Recall v0.0.1 — The Memory Layer for Software Projects.'
+            );
+        })
+    );
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+    console.log('Recall extension deactivated.');
+    extensionManager?.dispose();
+    extensionManager = undefined;
+}
